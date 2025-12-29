@@ -3,6 +3,30 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 ---
+## [0.4.2](https://github.com/tyrchen/tonic-mock/compare/v0.4.1..v0.4.2) - 2025-12-29
+
+### Miscellaneous Chores
+
+- bump version to 0.4.2 in Cargo.toml - ([502ed48](https://github.com/tyrchen/tonic-mock/commit/502ed48d3e6a5a4a7258e5e58c64ec5786d9d199)) - Max Thakur
+
+---
+## [0.4.1](https://github.com/tyrchen/tonic-mock/compare/v0.4.0..v0.4.1) - 2025-12-29
+
+### Features
+
+- add lazy streaming feature and improve benchmarks with new diagnostic tool - ([8928f78](https://github.com/tyrchen/tonic-mock/commit/8928f78b3b08f0579385f8daad31e4192aa13362)) - Max Thakur
+
+### Miscellaneous Chores
+
+- update dependencies and improve async examples in documentation - ([9074598](https://github.com/tyrchen/tonic-mock/commit/90745986d3b78ac50d803af1b044eb27f1a68c6c)) - Max Thakur
+- suppress unused variable warnings in diagnostic.rs - ([34761c8](https://github.com/tyrchen/tonic-mock/commit/34761c88b83e61137e28298fca933b9bdbeb80e4)) - Max Thakur
+- update version to 0.4.1 and add RoMarketplace Development Team as author - ([29aed6d](https://github.com/tyrchen/tonic-mock/commit/29aed6dfc547567bd4000e984fcc2ee4120aa7f7)) - Max Thakur
+
+### Other
+
+- Update CHANGELOG.md - ([c82d984](https://github.com/tyrchen/tonic-mock/commit/c82d984138976b88a0e00bb85ccc38dcbadb0dd9)) - Tyr Chen
+
+---
 ## [0.4.0](https://github.com/tyrchen/tonic-mock/compare/v0.3.0..v0.4.0) - 2025-05-21
 
 ### Features
