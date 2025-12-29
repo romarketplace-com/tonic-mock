@@ -1,6 +1,6 @@
 [package]
 name = "tonic-mock"
-version = "0.4.1"
+version = "0.4.2"
 authors = ["Tyr Chen <tyr.chen@gmail.com>", "RoMarketplace Development Team"]
 edition = "2024"
 license = "MIT"
