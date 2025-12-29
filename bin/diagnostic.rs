@@ -31,13 +31,13 @@ fn main() {
             // Measure streaming_request (consumes messages)
             let mut messages_clone = messages.clone();
             let t1 = Instant::now();
-            let req = streaming_request(messages_clone.drain(..).collect());
+            let _req = streaming_request(messages_clone.drain(..).collect());
             let req_build = t1.elapsed();
             println!("streaming_request build (encode path): {:?}", req_build);
 
             // Measure lazy streaming_request that defers encoding
             let t1l = Instant::now();
-            let req_lazy = streaming_request_lazy(messages.clone());
+            let _req_lazy = streaming_request_lazy(messages.clone());
             let req_lazy_build = t1l.elapsed();
             println!("streaming_request_lazy build (deferred encode): {:?}", req_lazy_build);
 
