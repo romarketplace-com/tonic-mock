@@ -38,9 +38,9 @@ pub struct MockBody<T = Box<dyn Message>> {
 
 impl<T: Message + Send + 'static> MockBody<T> {
     pub fn new(data: Vec<impl Message>) -> Self {
-        let mut queue: VecDeque<Bytes> = VecDeque::with_capacity(16);
+        let mut queue: VecDeque<Bytes> = VecDeque::with_capacity(data.len());
         for msg in data {
-            let buf = Self::encode(msg);
+            let buf = Self::encode(&msg);
             queue.push_back(buf);
         }
 
@@ -80,20 +80,18 @@ impl<T: Message + Send + 'static> MockBody<T> {
     }
 
     // see: https://github.com/hyperium/tonic/blob/1b03ece2a81cb7e8b1922b3c3c1f496bd402d76c/tonic/src/codec/encode.rs#L52
-    fn encode(msg: impl Message) -> Bytes {
-        let mut buf = BytesMut::with_capacity(256);
+    fn encode(msg: &impl Message) -> Bytes {
+        // Precompute encoded length to allocate exact capacity and write header safely
+        let encoded_len = msg.encoded_len();
+        let mut buf = BytesMut::with_capacity(encoded_len + 5);
 
-        buf.reserve(5);
-        unsafe {
-            buf.advance_mut(5);
-        }
+        // write the 5-byte gRPC header: 1 byte flags, 4 bytes length
+        buf.put_u8(0);
+        buf.put_u32(encoded_len as u32);
+
+        // encode the message payload
         msg.encode(&mut buf).unwrap();
-        {
-            let len = buf.len() - 5;
-            let mut buf = &mut buf[..5];
-            buf.put_u8(0); // byte must be 0, reserve doesn't auto-zero
-            buf.put_u32(len as u32);
-        }
+
         buf.freeze()
     }
 }
@@ -134,7 +132,7 @@ impl<T: Message + Send + 'static> Body for MockBody<T> {
                 match state.receiver.try_recv() {
                     Ok(msg) => {
                         // Got a message, encode it and return
-                        let buf = Self::encode(msg);
+                        let buf = Self::encode(&msg);
                         Poll::Ready(Some(Ok(http_body::Frame::data(buf))))
                     }
                     Err(tokio::sync::mpsc::error::TryRecvError::Empty) => {

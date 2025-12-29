@@ -14,6 +14,17 @@ pub fn create_test_messages(count: usize) -> Vec<TestMessage> {
     messages
 }
 
+// Bench-friendly message creator that reduces per-message allocations by
+// creating a shared data buffer and cloning it for each message id only.
+pub fn create_test_messages_reuse_data(count: usize, data_size: usize) -> Vec<TestMessage> {
+    let mut messages = Vec::with_capacity(count);
+    let shared_data = Bytes::from("x".repeat(data_size));
+    for i in 0..count {
+        messages.push(TestMessage::new(i.to_string(), shared_data.clone()));
+    }
+    messages
+}
+
 // Create a stream response from a vector of responses
 pub fn create_stream_response(
     responses: Vec<TestResponse>,

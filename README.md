@@ -219,6 +219,29 @@ async fn test_my_service() {
 
 For a more complete example, check the `examples/grpc_test_demo.rs` file which demonstrates:
 
+### Lazy Streaming (optional feature)
+
+For large messages or when you want to avoid upfront encoding and allocations, `tonic-mock` offers an optional feature `lazy-streaming`.
+When enabled, `streaming_request` will defer prost encoding and push messages into an internal channel so encoding happens on-demand when the stream is polled. This reduces request construction latency at the cost of doing encoding later when the stream is consumed.
+
+Enable it in your `Cargo.toml`:
+
+```toml
+tonic-mock = { version = "0.4", features = ["lazy-streaming"] }
+```
+
+Or call the explicit constructor `streaming_request_lazy(messages)` if you prefer to control laziness without enabling the feature for your whole build.
+
+Example (deferred encoding):
+
+```rust
+use tonic_mock::streaming_request_lazy;
+
+let messages = vec![ /* large messages */ ];
+let request = streaming_request_lazy(messages);
+// request construction is fast; encoding happens when the stream is polled
+```
+
 - Testing client streaming RPC (client sends multiple messages, server sends one response)
 - Testing server streaming RPC (client sends one message, server sends multiple responses)
 - Testing bidirectional streaming RPC (client and server both send multiple messages)

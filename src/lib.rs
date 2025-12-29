@@ -15,6 +15,7 @@ This crate helps you test gRPC services with minimal effort by providing utiliti
 Seven main functions are provided:
 
 - [`streaming_request`]: Build streaming requests based on a vector of messages.
+    - `streaming_request` (eager by default) — Build streaming requests based on a vector of messages. When the optional `lazy-streaming` feature is enabled, `streaming_request` defers prost encoding and reduces request construction latency; see the README for details.
 - [`streaming_request_with_interceptor`]: Build streaming requests with an interceptor function.
 - [`request_with_interceptor`]: Create a standard (non-streaming) request with an interceptor.
 - [`process_streaming_response`]: Iterate the streaming response and call the closure user provided.
@@ -61,7 +62,7 @@ async fn service_push_works() -> Result<(), Box<dyn std::error::Error>> {
 
 For client streaming (multiple requests, single response), use [`streaming_request`] to create a stream of messages:
 
-```rust,ignore
+```rust
 # use futures::executor::block_on;
 block_on(async {
     use tonic_mock::streaming_request;
@@ -88,7 +89,7 @@ block_on(async {
 
 For server streaming (single request, multiple responses), use [`process_streaming_response`] or [`stream_to_vec`]:
 
-```rust,ignore
+```rust
 # use futures::executor::block_on;
 block_on(async {
     use tonic_mock::{process_streaming_response, stream_to_vec};
@@ -221,7 +222,7 @@ async fn test_user_service_client() {
 
 Use interceptors to modify requests before they are sent:
 
-```rust,ignore
+```rust
 use tonic::metadata::MetadataValue;
 use tonic_mock::streaming_request_with_interceptor;
 
@@ -245,7 +246,7 @@ let request = streaming_request_with_interceptor(messages, |req| {
 
 Handle timeouts in streaming responses:
 
-```rust,ignore
+```rust
 use std::time::Duration;
 use tonic_mock::process_streaming_response_with_timeout;
 
@@ -349,6 +350,10 @@ pub type RequestInterceptor<T> = Box<dyn FnMut(&mut Request<T>) + Send>;
 /// let mut events = vec![event.clone(), event.clone(), event];
 /// let stream = tonic_mock::streaming_request(events);
 ///
+/// Default streaming_request. When the `lazy-streaming` feature is enabled,
+/// this will construct a lazy request (deferring encoding). Otherwise the
+/// eager pre-encoded request is returned.
+#[cfg(not(feature = "lazy-streaming"))]
 pub fn streaming_request<T>(messages: Vec<T>) -> Request<Streaming<T>>
 where
     T: Message + Default + Send + 'static,
@@ -358,6 +363,14 @@ where
     let stream = Streaming::new_request(decoder, body, None, None);
 
     Request::new(stream)
+}
+
+#[cfg(feature = "lazy-streaming")]
+pub fn streaming_request<T>(messages: Vec<T>) -> Request<Streaming<T>>
+where
+    T: Message + Default + Send + 'static,
+{
+    streaming_request_lazy(messages)
 }
 
 /// Generate streaming request for GRPC with an interceptor
@@ -420,6 +433,34 @@ where
     let mut request = streaming_request(messages);
     interceptor(&mut request);
     request
+}
+
+/// Create a streaming request that does not pre-encode messages.
+///
+/// This variant moves messages into an internal channel so encoding happens
+/// on-demand when the stream is polled, reducing upfront cost for large messages.
+pub fn streaming_request_lazy<T>(messages: Vec<T>) -> Request<Streaming<T>>
+where
+    T: Message + Default + Send + 'static,
+{
+    let cap = messages.len().max(1);
+    let (tx, rx) = tokio::sync::mpsc::channel(cap);
+
+    // Try to send all messages into the bounded channel synchronously.
+    // The channel capacity is sized to fit all messages to avoid await.
+    for msg in messages.into_iter() {
+        // ignore error if channel is closed unexpectedly
+        let _ = tx.try_send(msg);
+    }
+
+    // drop sender so receiver will see EOF when drained
+    drop(tx);
+
+    let body = crate::mock::MockBody::from_channel(rx);
+    let decoder: crate::mock::ProstDecoder<T> = crate::mock::ProstDecoder::new();
+    let stream = Streaming::new_request(decoder, body, None, None);
+
+    Request::new(stream)
 }
 
 /// Create a regular (non-streaming) request with an interceptor
@@ -628,7 +669,8 @@ pub async fn stream_to_vec<T>(response: StreamResponse<T>) -> Vec<Result<T, Stat
 where
     T: Message + Default + 'static,
 {
-    let mut result = Vec::new();
+    // Start with a modest initial capacity to reduce reallocations for common cases
+    let mut result = Vec::with_capacity(64);
     let mut messages = response.into_inner();
     while let Some(v) = messages.next().await {
         result.push(v)

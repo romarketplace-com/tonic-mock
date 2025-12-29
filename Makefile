@@ -7,6 +7,12 @@ cov:
 test:
 	@cargo nextest run --all-features
 
+bench:
+	@cargo nextest run --all-targets
+
+clean:
+	@cargo clean
+
 release:
 	@cargo release tag --execute
 	@git cliff -o CHANGELOG.md
@@ -14,4 +20,4 @@ release:
 	@git push origin master
 	@cargo release push --execute
 
-.PHONY: build cov test release
+.PHONY: build cov test bench clean release

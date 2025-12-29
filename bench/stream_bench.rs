@@ -15,7 +15,8 @@ fn bench_streaming_request(c: &mut Criterion) {
     for count in [10, 100, 1000].iter() {
         group.bench_with_input(BenchmarkId::from_parameter(count), count, |b, &count| {
             b.iter(|| {
-                let messages = test_utils::create_test_messages(count);
+                // Use reuse-data helper to reduce bench noise from allocations
+                let messages = test_utils::create_test_messages_reuse_data(count, 100);
                 streaming_request(messages)
             });
         });
@@ -86,10 +87,7 @@ fn bench_message_sizes(c: &mut Criterion) {
         group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
             b.iter(|| {
                 // Create a message with specified data size
-                let data = "x".repeat(size);
-                let message = TestMessage::new("1", data);
-                let messages = vec![message.clone(); 10];
-
+                let messages = test_utils::create_test_messages_reuse_data(10, size);
                 streaming_request(messages)
             });
         });

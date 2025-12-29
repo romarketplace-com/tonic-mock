@@ -19,6 +19,7 @@ keywords = ["tonic", "testing"]
 [features]
 default = ["test-utils"]
 test-utils = ["async-stream"]
+lazy-streaming = []
 
 [dependencies]
 async-stream = { version = "0.3", optional = true }
@@ -41,3 +42,7 @@ tonic-mock = { path = ".", features = ["test-utils"] }
 name = "stream_bench"
 harness = false
 path = "bench/stream_bench.rs"
+
+[[bin]]
+name = "diagnostic"
+path = "bin/diagnostic.rs"
