@@ -491,7 +491,7 @@ impl MockableGrpcClient {
     /// ```
     pub fn mock<Req, Resp>(&self, service_name: &str, method_name: &str) -> MockBuilder<Req, Resp>
     where
-        Req: Message + Default + 'static,
+        Req: Message + Default + std::fmt::Debug + 'static,
         Resp: Message + Default + Clone + 'static,
     {
         MockBuilder {
@@ -604,7 +604,7 @@ impl MockableGrpcClient {
 /// Builder for configuring mock responses
 pub struct MockBuilder<Req, Resp>
 where
-    Req: Message + Default + 'static,
+    Req: Message + Default + std::fmt::Debug + 'static,
     Resp: Message + Default + Clone + 'static,
 {
     client: MockableGrpcClient,
@@ -615,7 +615,7 @@ where
 
 impl<Req, Resp> MockBuilder<Req, Resp>
 where
-    Req: Message + Default + 'static,
+    Req: Message + Default + std::fmt::Debug + 'static,
     Resp: Message + Default + Clone + 'static,
 {
     /// Configure a static response for any request

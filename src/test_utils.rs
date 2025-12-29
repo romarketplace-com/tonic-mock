@@ -18,64 +18,67 @@ with streaming interfaces. It is enabled by default but can be disabled by setti
 ## Example Usage
 
 ```rust
-use tonic::{Request, Response, Status, Code};
-use tonic_mock::{streaming_request, process_streaming_response};
-use tonic_mock::test_utils::{
-    TestRequest, TestResponse, create_test_messages,
-    create_stream_response, assert_response_eq
-};
+# use futures::executor::block_on;
+block_on(async {
+    use tonic::{Request, Response, Status, Code};
+    use tonic_mock::{streaming_request, process_streaming_response, create_stream_response_with_errors};
+    use tonic_mock::test_utils::{
+        TestRequest, TestResponse, create_test_messages,
+        create_stream_response, assert_response_eq
+    };
 
-// Create test messages
-let messages = create_test_messages(5);
-assert_eq!(messages.len(), 5);
+    // Create test messages
+    let messages = create_test_messages(5);
+    assert_eq!(messages.len(), 5);
 
-// Create a streaming request
-let request = streaming_request(messages);
+    // Create a streaming request
+    let request = streaming_request(messages);
 
-// Call your service (or mock it for this example)
-let responses = vec![
-    TestResponse::new(200, "OK: 0"),
-    TestResponse::new(200, "OK: 1"),
-    TestResponse::new(200, "OK: 2"),
-    TestResponse::new(200, "OK: 3"),
-    TestResponse::new(200, "OK: 4"),
-];
-let response = create_stream_response(responses);
+    // Call your service (or mock it for this example)
+    let responses = vec![
+        TestResponse::new(200, "OK: 0"),
+        TestResponse::new(200, "OK: 1"),
+        TestResponse::new(200, "OK: 2"),
+        TestResponse::new(200, "OK: 3"),
+        TestResponse::new(200, "OK: 4"),
+    ];
+    let response = create_stream_response(responses);
 
-// Process the streaming response
-process_streaming_response(response, |result, index| {
-    assert!(result.is_ok());
-    let response = result.unwrap();
-    assert_response_eq(&response, 200, format!("OK: {}", index));
-}).await;
+    // Process the streaming response
+    process_streaming_response(response, |result, index| {
+        assert!(result.is_ok());
+        let response = result.unwrap();
+        assert_response_eq(&response, 200, format!("OK: {}", index));
+    }).await;
 
-// Test error handling
-let responses = vec![
-    TestResponse::new(200, "OK: 0"),
-    TestResponse::new(200, "OK: 1"),
-    TestResponse::new(200, "OK: 2"),
-];
-let error_status = Status::new(Code::Internal, "Simulated error");
-let response = create_stream_response_with_errors(
-    responses,
-    vec![1], // Error at index 1
-    error_status
-);
+    // Test error handling
+    let responses = vec![
+        TestResponse::new(200, "OK: 0"),
+        TestResponse::new(200, "OK: 1"),
+        TestResponse::new(200, "OK: 2"),
+    ];
+    let error_status = Status::new(Code::Internal, "Simulated error");
+    let response = create_stream_response_with_errors(
+        responses,
+        vec![1], // Error at index 1
+        error_status
+    );
 
-// Process response with errors
-process_streaming_response(response, |result, index| {
-    match index {
-        1 => {
-            assert!(result.is_err());
-            assert_eq!(result.unwrap_err().code(), Code::Internal);
-        },
-        _ => {
-            assert!(result.is_ok());
-            let response = result.unwrap();
-            assert_eq!(response.code, 200);
+    // Process response with errors
+    process_streaming_response(response, |result, index| {
+        match index {
+            1 => {
+                assert!(result.is_err());
+                assert_eq!(result.unwrap_err().code(), Code::Internal);
+            },
+            _ => {
+                assert!(result.is_ok());
+                let response = result.unwrap();
+                assert_eq!(response.code, 200);
+            }
         }
-    }
-}).await;
+    }).await;
+});
 ```
 
 These utilities make it easier to test gRPC streaming services by providing

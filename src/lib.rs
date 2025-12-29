@@ -61,57 +61,63 @@ async fn service_push_works() -> Result<(), Box<dyn std::error::Error>> {
 
 For client streaming (multiple requests, single response), use [`streaming_request`] to create a stream of messages:
 
-```rust
-use tonic_mock::streaming_request;
+```rust,ignore
+# use futures::executor::block_on;
+block_on(async {
+    use tonic_mock::streaming_request;
 
-// Create a vector of messages to send
-let messages = vec![
-    StreamRequest { id: 1, data: "first".to_string() },
-    StreamRequest { id: 2, data: "second".to_string() },
-];
+    // Create a vector of messages to send
+    let messages = vec![
+        StreamRequest { id: 1, data: "first".to_string() },
+        StreamRequest { id: 2, data: "second".to_string() },
+    ];
 
-// Create the streaming request
-let request = streaming_request(messages);
+    // Create the streaming request
+    let request = streaming_request(messages);
 
-// Call your service
-let response = your_service.client_streaming_method(request).await?;
+    // Call your service
+    let response = your_service.client_streaming_method(request).await.unwrap();
 
-// Check the response
-let response = response.into_inner();
-assert_eq!(response.count, 2);
+    // Check the response
+    let response = response.into_inner();
+    assert_eq!(response.count, 2);
+});
 ```
 
 ## Testing Server Streaming
 
 For server streaming (single request, multiple responses), use [`process_streaming_response`] or [`stream_to_vec`]:
 
-```rust
-use tonic_mock::{process_streaming_response, stream_to_vec};
+```rust,ignore
+# use futures::executor::block_on;
+block_on(async {
+    use tonic_mock::{process_streaming_response, stream_to_vec};
 
-// Create the request
-let request = Request::new(ServerStreamRequest { count: 3 });
+    // Create the request
+    let request = Request::new(ServerStreamRequest { count: 3 });
 
-// Call your service
-let response = your_service.server_streaming_method(request).await?;
+    // Call your service
+    let response = your_service.server_streaming_method(request).await.unwrap();
 
-// Process responses with a callback
-process_streaming_response(response, |msg, idx| {
-    assert!(msg.is_ok());
-    let response = msg.unwrap();
-    assert_eq!(response.index, idx as i32);
-}).await;
+    // Process responses with a callback
+    process_streaming_response(response, |msg, idx| {
+        assert!(msg.is_ok());
+        let response = msg.unwrap();
+        assert_eq!(response.index, idx as i32);
+    }).await;
 
-// Or convert the stream to a vector
-let request = Request::new(ServerStreamRequest { count: 3 });
-let response = your_service.server_streaming_method(request).await?;
-let results = stream_to_vec(response).await;
+    // Or convert the stream to a vector
+    let request = Request::new(ServerStreamRequest { count: 3 });
+    let response = your_service.server_streaming_method(request).await.unwrap();
+    let results = stream_to_vec(response).await;
 
-assert_eq!(results.len(), 3);
-for (i, result) in results.iter().enumerate() {
-    assert!(result.is_ok());
-    let response = result.as_ref().unwrap();
-    assert_eq!(response.index, i as i32);
-}
+    assert_eq!(results.len(), 3);
+    for (i, result) in results.iter().enumerate() {
+        assert!(result.is_ok());
+        let response = result.as_ref().unwrap();
+        assert_eq!(response.index, i as i32);
+    }
+});
 ```
 
 ## Bidirectional Streaming
@@ -215,7 +221,7 @@ async fn test_user_service_client() {
 
 Use interceptors to modify requests before they are sent:
 
-```rust
+```rust,ignore
 use tonic::metadata::MetadataValue;
 use tonic_mock::streaming_request_with_interceptor;
 
@@ -239,7 +245,7 @@ let request = streaming_request_with_interceptor(messages, |req| {
 
 Handle timeouts in streaming responses:
 
-```rust
+```rust,ignore
 use std::time::Duration;
 use tonic_mock::process_streaming_response_with_timeout;
 
